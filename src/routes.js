@@ -50,6 +50,7 @@ import Sales from "layouts/sales";
 import NewSale from "layouts/sales/newsale";
 import PurchaseOrders from "layouts/purchaseorders";
 import NewPurchaseOrder from "layouts/purchaseorders/newpurchaseorder";
+import PurchaseRequests from "layouts/purchaserequests";
 import KitItems from "layouts/kititems";
 import NewKitItem from "layouts/kititems/newkititem";
 import RTL from "layouts/rtl";
@@ -134,6 +135,14 @@ const routes = [
     icon: <Icon fontSize="small">shopping_cart</Icon>,
     route: "/purchaseorders",
     component: <PurchaseOrders />,
+  },
+  {
+    type: "collapse",
+    name: "PO Request",
+    key: "purchaserequests",
+    icon: <Icon fontSize="small">assignment</Icon>,
+    route: "/purchaserequests",
+    component: <PurchaseRequests />,
   },
   {
     type: "route",

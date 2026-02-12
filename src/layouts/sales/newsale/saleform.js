@@ -92,9 +92,7 @@ function SaleForm() {
             customer_id: headerData.customer_id || "",
             sales_number: headerData.sales_number || "",
             order_date: headerData.order_date ? headerData.order_date.split("T")[0] : "",
-            delivery_date: headerData.delivery_date
-              ? headerData.delivery_date.split("T")[0]
-              : "",
+            delivery_date: headerData.delivery_date ? headerData.delivery_date.split("T")[0] : "",
             total_amount: headerData.total_amount || 0,
             status: headerData.status || "draft",
             notes: headerData.notes || "",
@@ -123,7 +121,9 @@ function SaleForm() {
       ...prev,
       customer_id: newValue?.customer_id || "",
       shipping_address: newValue
-        ? `${newValue.shipping_address || ""}, ${newValue.shipping_address_city || ""}, ${newValue.shipping_address_state || ""} ${newValue.shipping_address_zip || ""}`.trim()
+        ? `${newValue.shipping_address || ""}, ${newValue.shipping_address_city || ""}, ${
+            newValue.shipping_address_state || ""
+          } ${newValue.shipping_address_zip || ""}`.trim()
         : "",
     }));
   };
@@ -183,9 +183,7 @@ function SaleForm() {
 
     // Fetch available inventory for this item
     try {
-      const response = await axios.get(
-        `http://localhost:5000/sales/inventory/${detail.item_id}`
-      );
+      const response = await axios.get(`http://localhost:5000/sales/inventory/${detail.item_id}`);
       setAvailableInventory(response.data || []);
     } catch (error) {
       console.error("Error fetching inventory:", error);
@@ -620,13 +618,13 @@ function SaleForm() {
                   <Autocomplete
                     options={availableInventory}
                     getOptionLabel={(option) =>
-                      `Available: ${option.available_qty} | Batch: ${option.batch_number || "N/A"} | Location: ${option.location || "N/A"}`
+                      `Available: ${option.available_qty} | Batch: ${
+                        option.batch_number || "N/A"
+                      } | Location: ${option.location || "N/A"}`
                     }
                     value={selectedInventory}
                     onChange={(e, newValue) => setSelectedInventory(newValue)}
-                    renderInput={(params) => (
-                      <TextField {...params} label="Select Inventory *" />
-                    )}
+                    renderInput={(params) => <TextField {...params} label="Select Inventory *" />}
                     fullWidth
                   />
                 </Grid>

@@ -15,6 +15,7 @@ import TableRow from "@mui/material/TableRow";
 import Paper from "@mui/material/Paper";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
+import PrintIcon from "@mui/icons-material/Print";
 import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
 import MDInput from "components/MDInput";
@@ -28,8 +29,10 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import axios from "axios";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 
-const STATUS_OPTIONS = ["pending", "approved", "received", "cancelled"];
+const STATUS_OPTIONS = ["Pending", "Approved", "Received", "Cancelled"];
 
 function PurchaseOrderForm() {
   const { po_id } = useParams();
@@ -41,7 +44,7 @@ function PurchaseOrderForm() {
     order_date: new Date().toISOString().split("T")[0],
     expected_delivery: "",
     total_amount: 0,
-    status: "pending",
+    status: "Pending",
     notes: "",
     created_by: 1,
   });
@@ -61,12 +64,20 @@ function PurchaseOrderForm() {
   const [receiveExpiryDate, setReceiveExpiryDate] = useState("");
   const [receiveLocation, setReceiveLocation] = useState("");
 
-  // Fetch suppliers and items for dropdowns
+  // Company info for PDF
+  const [companyInfo, setCompanyInfo] = useState(null);
+
+  // Fetch suppliers, items, and company info
   useEffect(() => {
     axios
       .get("http://localhost:5000/suppliers")
       .then((response) => setSuppliers(response.data))
       .catch((error) => console.error("Error fetching suppliers:", error));
+
+    axios
+      .get("http://localhost:5000/company")
+      .then((response) => setCompanyInfo(response.data))
+      .catch((error) => console.error("Error fetching company:", error));
 
     axios
       .get("http://localhost:5000/items?table=ep_items")
@@ -95,7 +106,7 @@ function PurchaseOrderForm() {
               ? headerData.expected_delivery.split("T")[0]
               : "",
             total_amount: headerData.total_amount || 0,
-            status: headerData.status || "pending",
+            status: headerData.status || "Pending",
             notes: headerData.notes || "",
             created_by: headerData.created_by || 1,
           });
@@ -213,6 +224,131 @@ function PurchaseOrderForm() {
       console.error("Error receiving item:", error);
       alert("Failed to receive item");
     }
+  };
+
+  // Generate PDF for Purchase Order
+  const handlePrintPDF = () => {
+    const doc = new jsPDF();
+    const selectedSupplierData = suppliers.find((s) => s.supplier_id === header.supplier_id);
+
+    // Company Header
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "bold");
+    doc.text(companyInfo?.company_name || "Company Name", 14, 20);
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    let yPos = 28;
+    if (companyInfo?.address_line1) {
+      doc.text(companyInfo.address_line1, 14, yPos);
+      yPos += 5;
+    }
+    if (companyInfo?.address_line2) {
+      doc.text(companyInfo.address_line2, 14, yPos);
+      yPos += 5;
+    }
+    const cityStateZip = [companyInfo?.city, companyInfo?.state, companyInfo?.postal_code]
+      .filter(Boolean)
+      .join(", ");
+    if (cityStateZip) {
+      doc.text(cityStateZip, 14, yPos);
+      yPos += 5;
+    }
+    if (companyInfo?.phone) {
+      doc.text(`Phone: ${companyInfo.phone}`, 14, yPos);
+      yPos += 5;
+    }
+    if (companyInfo?.email) {
+      doc.text(`Email: ${companyInfo.email}`, 14, yPos);
+    }
+
+    // PO Title
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.text("PURCHASE ORDER", 140, 20);
+
+    // PO Info Box
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`PO Number: ${header.po_number || "N/A"}`, 140, 30);
+    doc.text(`Date: ${header.order_date || "N/A"}`, 140, 36);
+    doc.text(`Expected Delivery: ${header.expected_delivery || "N/A"}`, 140, 42);
+    doc.text(`Status: ${header.status || "Pending"}`, 140, 48);
+
+    // Supplier Info
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("SUPPLIER:", 14, 60);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(selectedSupplierData?.company_name || "N/A", 14, 67);
+    if (selectedSupplierData?.address) {
+      doc.text(selectedSupplierData.address, 14, 73);
+    }
+    if (selectedSupplierData?.contact_name) {
+      doc.text(`Contact: ${selectedSupplierData.contact_name}`, 14, 79);
+    }
+    if (selectedSupplierData?.contact_phone) {
+      doc.text(`Phone: ${selectedSupplierData.contact_phone}`, 14, 85);
+    }
+    if (selectedSupplierData?.contact_email) {
+      doc.text(`Email: ${selectedSupplierData.contact_email}`, 14, 91);
+    }
+
+    // Items Table
+    const tableColumn = ["#", "Item", "Quantity", "Unit Price", "Total"];
+    const tableRows = details.map((detail, index) => [
+      index + 1,
+      detail.item_name || items.find((i) => i.item_id === detail.item_id)?.name || "N/A",
+      detail.quantity || 0,
+      `$${parseFloat(detail.unit_price || 0).toFixed(2)}`,
+      `$${parseFloat(detail.total_price || 0).toFixed(2)}`,
+    ]);
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 100,
+      theme: "grid",
+      headStyles: {
+        fillColor: [66, 139, 202],
+        textColor: 255,
+        fontStyle: "bold",
+      },
+      styles: {
+        fontSize: 10,
+      },
+      columnStyles: {
+        0: { cellWidth: 15, halign: "center" },
+        1: { cellWidth: 80 },
+        2: { cellWidth: 25, halign: "center" },
+        3: { cellWidth: 30, halign: "right" },
+        4: { cellWidth: 30, halign: "right" },
+      },
+    });
+
+    // Total Amount
+    const finalY = doc.lastAutoTable?.finalY || 100;
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Total Amount: $${parseFloat(header.total_amount || 0).toFixed(2)}`, 140, finalY + 15);
+
+    // Notes
+    if (header.notes) {
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.text("Notes:", 14, finalY + 25);
+      doc.setFont("helvetica", "normal");
+      doc.text(header.notes, 14, finalY + 32, { maxWidth: 180 });
+    }
+
+    // Footer
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "italic");
+    doc.text(`Generated on ${new Date().toLocaleString()}`, 14, doc.internal.pageSize.height - 10);
+
+    // Save PDF
+    doc.save(`PO_${header.po_number || "draft"}.pdf`);
   };
 
   const handleSubmit = async (e) => {
@@ -370,7 +506,7 @@ function PurchaseOrderForm() {
               select
               label="Status"
               name="status"
-              value={header.status || "pending"}
+              value={header.status || "Pending"}
               onChange={handleHeaderChange}
               fullWidth
               size="medium"
@@ -523,11 +659,25 @@ function PurchaseOrderForm() {
           Add Item
         </Button>
 
-        {/* Total Amount */}
-        <MDBox display="flex" justifyContent="flex-end" mb={3}>
+        {/* Total Amount and Print Button */}
+        <MDBox display="flex" justifyContent="space-between" alignItems="center" mb={3}>
           <MDTypography variant="h6">
             Total Amount: ${parseFloat(header.total_amount || 0).toFixed(2)}
           </MDTypography>
+          {po_id && (
+            <Button
+              variant="contained"
+              startIcon={<PrintIcon />}
+              onClick={handlePrintPDF}
+              sx={{
+                color: "#ffffff",
+                backgroundColor: "#1976d2",
+                "&:hover": { backgroundColor: "#1565c0" },
+              }}
+            >
+              Print PO
+            </Button>
+          )}
         </MDBox>
 
         {/* Save Button */}

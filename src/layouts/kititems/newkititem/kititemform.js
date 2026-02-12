@@ -184,7 +184,23 @@ function KitItemForm() {
     }
 
     try {
-      await axios.post(`http://localhost:5000/kit-items/${kitItemId}/reserve`);
+      const reserveResponse = await axios.post(
+        `http://localhost:5000/kit-items/${kitItemId}/reserve`
+      );
+
+      // Check for warnings (insufficient inventory)
+      if (reserveResponse.data.warnings && reserveResponse.data.warnings.length > 0) {
+        const warningMessages = reserveResponse.data.warnings
+          .map(
+            (w) =>
+              `${w.item_code} (${w.item_name}): Need ${w.needed}, Available ${w.available}, Shortage ${w.shortage}`
+          )
+          .join("\n");
+        alert(
+          `Warning: Insufficient inventory for some components:\n\n${warningMessages}\n\nReservation completed with negative available quantity.`
+        );
+      }
+
       setSuccessMessage(true);
       // Refresh data
       const response = await axios.get(`http://localhost:5000/kit-items/${kitItemId}`);
@@ -486,7 +502,9 @@ function KitItemForm() {
                       onClick={() => handleOpenInventoryDialog(index)}
                     >
                       {component.inventory_id
-                        ? `${component.batch_number || "Selected"} (${component.available_qty || 0})`
+                        ? `${component.batch_number || "Selected"} (${
+                            component.available_qty || 0
+                          })`
                         : "Select"}
                     </Button>
                   </TableCell>
@@ -588,7 +606,10 @@ function KitItemForm() {
             </MDTypography>
             {header.output_item_id && (
               <MDTypography variant="body2" mt={1}>
-                Output Item: <strong>{header.output_item_code} - {header.output_item_name}</strong>
+                Output Item:{" "}
+                <strong>
+                  {header.output_item_code} - {header.output_item_name}
+                </strong>
                 {header.status === "completed" && (
                   <span style={{ color: "green", marginLeft: 8 }}>
                     (Inventory created: {header.completed_quantity || 0} units)

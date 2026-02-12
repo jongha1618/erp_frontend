@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, Fragment } from "react";
 import Grid from "@mui/material/Grid";
 import Card from "@mui/material/Card";
 import Dialog from "@mui/material/Dialog";
@@ -11,6 +11,16 @@ import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
+import Table from "@mui/material/Table";
+import TableBody from "@mui/material/TableBody";
+import TableCell from "@mui/material/TableCell";
+import TableContainer from "@mui/material/TableContainer";
+import TableHead from "@mui/material/TableHead";
+import TableRow from "@mui/material/TableRow";
+import Collapse from "@mui/material/Collapse";
+import Box from "@mui/material/Box";
 import axios from "axios";
 
 import MDBox from "components/MDBox";
@@ -20,7 +30,6 @@ import MDBadge from "components/MDBadge";
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "examples/Navbars/DashboardNavbar";
 import Footer from "examples/Footer";
-import DataTable from "examples/Tables/DataTable";
 
 const transactionTypes = [
   { value: "purchase", label: "Purchase" },
@@ -28,6 +37,41 @@ const transactionTypes = [
   { value: "adjustment", label: "Adjustment" },
 ];
 
+// Group flat inventory records by item
+function groupInventoryByItem(inventoryRecords) {
+  const groupMap = {};
+  const groupOrder = [];
+
+  inventoryRecords.forEach((record) => {
+    const key = record.item_id;
+    if (!groupMap[key]) {
+      groupMap[key] = {
+        item_id: record.item_id,
+        item_code: record.item_code,
+        item_name: record.item_name,
+        totalQty: 0,
+        totalReserved: 0,
+        totalAvailable: 0,
+        containerCount: 0,
+        containers: [],
+      };
+      groupOrder.push(key);
+    }
+    const reservedQty = record.reservation_qty || 0;
+    const availableQty =
+      record.available_qty !== undefined ? record.available_qty : record.quantity - reservedQty;
+
+    groupMap[key].totalQty += record.quantity || 0;
+    groupMap[key].totalReserved += reservedQty;
+    groupMap[key].totalAvailable += availableQty;
+    groupMap[key].containerCount += 1;
+    groupMap[key].containers.push(record);
+  });
+
+  return groupOrder.map((key) => groupMap[key]);
+}
+
+// Edit Inventory Dialog (unchanged)
 function EditInventoryDialog({ open, onClose, inventory, users, onSave }) {
   const [formData, setFormData] = useState({
     quantity: 0,
@@ -75,7 +119,7 @@ function EditInventoryDialog({ open, onClose, inventory, users, onSave }) {
     try {
       await axios.put(`http://localhost:5000/inventories/${inventory.inventory_id}`, {
         ...formData,
-        created_by: null, // TODO: Get current user ID
+        created_by: null,
       });
       onSave();
       onClose();
@@ -222,6 +266,209 @@ function EditInventoryDialog({ open, onClose, inventory, users, onSave }) {
   );
 }
 
+// Expandable inventory item row
+function InventoryItemRow({ group, onEditClick }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Fragment>
+      {/* Summary Row */}
+      <TableRow
+        onClick={() => setOpen(!open)}
+        sx={{
+          cursor: "pointer",
+          "&:hover": { backgroundColor: "rgba(0, 0, 0, 0.04)" },
+        }}
+      >
+        <TableCell sx={{ padding: "8px", width: "30px" }}>
+          <IconButton
+            size="small"
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpen(!open);
+            }}
+          >
+            {open ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+          </IconButton>
+        </TableCell>
+        <TableCell>
+          <MDTypography variant="caption" color="text" fontWeight="bold">
+            {group.item_code}
+          </MDTypography>
+        </TableCell>
+        <TableCell>
+          <MDTypography variant="caption" color="text" fontWeight="medium">
+            {group.item_name}
+          </MDTypography>
+        </TableCell>
+        <TableCell align="center">
+          <MDBadge
+            badgeContent={String(group.totalQty)}
+            color="info"
+            variant="gradient"
+            size="sm"
+          />
+        </TableCell>
+        <TableCell align="center">
+          <MDBadge
+            badgeContent={String(group.totalReserved)}
+            color={group.totalReserved > 0 ? "warning" : "secondary"}
+            variant="gradient"
+            size="sm"
+          />
+        </TableCell>
+        <TableCell align="center">
+          <MDBadge
+            badgeContent={String(group.totalAvailable)}
+            color={group.totalAvailable > 0 ? "success" : "error"}
+            variant="gradient"
+            size="sm"
+          />
+        </TableCell>
+        <TableCell align="center">
+          <MDBadge
+            badgeContent={`${group.containerCount}`}
+            color="dark"
+            variant="gradient"
+            size="sm"
+          />
+        </TableCell>
+      </TableRow>
+
+      {/* Collapse Row - Container Details */}
+      <TableRow>
+        <TableCell colSpan={7} style={{ paddingBottom: 0, paddingTop: 0 }}>
+          <Collapse in={open} timeout="auto" unmountOnExit>
+            <Box sx={{ margin: 2, backgroundColor: "#dddee7ff", borderRadius: 2, p: 2 }}>
+              <Table size="small">
+                <TableHead sx={{ display: "table-header-group" }}>
+                  <TableRow sx={{ display: "table-row" }}>
+                    <TableCell>
+                      <MDTypography variant="caption" fontWeight="bold" color="secondary">
+                        BATCH #
+                      </MDTypography>
+                    </TableCell>
+                    <TableCell>
+                      <MDTypography variant="caption" fontWeight="bold" color="secondary">
+                        LOCATION
+                      </MDTypography>
+                    </TableCell>
+                    <TableCell align="center">
+                      <MDTypography variant="caption" fontWeight="bold" color="secondary">
+                        RECEIVED
+                      </MDTypography>
+                    </TableCell>
+                    <TableCell align="center">
+                      <MDTypography variant="caption" fontWeight="bold" color="secondary">
+                        EXPIRY
+                      </MDTypography>
+                    </TableCell>
+                    <TableCell align="center">
+                      <MDTypography variant="caption" fontWeight="bold" color="secondary">
+                        QTY
+                      </MDTypography>
+                    </TableCell>
+                    <TableCell align="center">
+                      <MDTypography variant="caption" fontWeight="bold" color="secondary">
+                        RESERVED
+                      </MDTypography>
+                    </TableCell>
+                    <TableCell align="center">
+                      <MDTypography variant="caption" fontWeight="bold" color="secondary">
+                        AVAILABLE
+                      </MDTypography>
+                    </TableCell>
+                    <TableCell align="center">
+                      <MDTypography variant="caption" fontWeight="bold" color="secondary">
+                        ACTION
+                      </MDTypography>
+                    </TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {group.containers.map((container) => {
+                    const reservedQty = container.reservation_qty || 0;
+                    const availableQty =
+                      container.available_qty !== undefined
+                        ? container.available_qty
+                        : container.quantity - reservedQty;
+
+                    return (
+                      <TableRow key={container.inventory_id}>
+                        <TableCell>
+                          <MDTypography variant="caption" color="text" fontWeight="medium">
+                            {container.batch_number || "-"}
+                          </MDTypography>
+                        </TableCell>
+                        <TableCell>
+                          <MDTypography variant="caption" color="text" fontWeight="medium">
+                            {container.location || "-"}
+                          </MDTypography>
+                        </TableCell>
+                        <TableCell align="center">
+                          <MDTypography variant="caption" color="text" fontWeight="medium">
+                            {container.created_at
+                              ? new Date(container.created_at).toLocaleDateString("ko-KR")
+                              : "-"}
+                          </MDTypography>
+                        </TableCell>
+                        <TableCell align="center">
+                          <MDTypography variant="caption" color="text" fontWeight="medium">
+                            {container.expiry_date
+                              ? new Date(container.expiry_date).toLocaleDateString("ko-KR")
+                              : "-"}
+                          </MDTypography>
+                        </TableCell>
+                        <TableCell align="center">
+                          <MDBadge
+                            badgeContent={String(container.quantity ?? 0)}
+                            color="info"
+                            variant="gradient"
+                            size="sm"
+                          />
+                        </TableCell>
+                        <TableCell align="center">
+                          <MDBadge
+                            badgeContent={String(reservedQty)}
+                            color={reservedQty > 0 ? "warning" : "secondary"}
+                            variant="gradient"
+                            size="sm"
+                          />
+                        </TableCell>
+                        <TableCell align="center">
+                          <MDBadge
+                            badgeContent={String(availableQty)}
+                            color={availableQty > 0 ? "success" : "error"}
+                            variant="gradient"
+                            size="sm"
+                          />
+                        </TableCell>
+                        <TableCell align="center">
+                          <MDBadge
+                            badgeContent="Edit"
+                            color="info"
+                            variant="gradient"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onEditClick(container);
+                            }}
+                            sx={{ cursor: "pointer" }}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </Box>
+          </Collapse>
+        </TableCell>
+      </TableRow>
+    </Fragment>
+  );
+}
+
 function Inventory() {
   const [data, setData] = useState([]);
   const [users, setUsers] = useState([]);
@@ -229,13 +476,14 @@ function Inventory() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedInventory, setSelectedInventory] = useState(null);
 
+  const groupedData = useMemo(() => groupInventoryByItem(data), [data]);
+
   const fetchData = () => {
     setLoading(true);
     axios
       .get("http://localhost:5000/inventories")
       .then((response) => {
         setData(response.data);
-        console.log("Inventory data fetched successfully:", response.data);
       })
       .catch((error) => {
         console.error("Error fetching inventory data:", error);
@@ -275,101 +523,6 @@ function Inventory() {
     fetchData();
   };
 
-  const columns = [
-    { Header: "Item Code", accessor: "item_code", align: "left" },
-    { Header: "Item Name", accessor: "item_name", align: "left" },
-    { Header: "Batch #", accessor: "batch_number", align: "left" },
-    { Header: "Quantity", accessor: "quantity", align: "center" },
-    { Header: "Reserved", accessor: "reserved", align: "center" },
-    { Header: "Available", accessor: "available", align: "center" },
-    { Header: "Location", accessor: "location", align: "left" },
-    { Header: "Received", accessor: "received_date", align: "center" },
-    { Header: "Expiry Date", accessor: "expiry_date", align: "center" },
-    { Header: "Action", accessor: "action", align: "center" },
-  ];
-
-  const rows = data.map((item) => {
-    const reservedQty = item.reservation_qty || 0;
-    const availableQty =
-      item.available_qty !== undefined ? item.available_qty : item.quantity - reservedQty;
-
-    return {
-      key: item.inventory_id,
-      item_code: (
-        <MDTypography variant="caption" color="text" fontWeight="bold">
-          {item.item_code}
-        </MDTypography>
-      ),
-      item_name: (
-        <MDTypography variant="caption" color="text" fontWeight="medium">
-          {item.item_name}
-        </MDTypography>
-      ),
-      batch_number: (
-        <MDTypography variant="caption" color="text" fontWeight="medium">
-          {item.batch_number || "-"}
-        </MDTypography>
-      ),
-      quantity: (
-        <MDBox ml={-1}>
-          <MDBadge
-            badgeContent={item.quantity !== null ? String(item.quantity) : "0"}
-            color="info"
-            variant="gradient"
-            size="sm"
-          />
-        </MDBox>
-      ),
-      reserved: (
-        <MDBox ml={-1}>
-          <MDBadge
-            badgeContent={String(reservedQty)}
-            color={reservedQty > 0 ? "warning" : "secondary"}
-            variant="gradient"
-            size="sm"
-          />
-        </MDBox>
-      ),
-      available: (
-        <MDBox ml={-1}>
-          <MDBadge
-            badgeContent={String(availableQty)}
-            color={availableQty > 0 ? "success" : "error"}
-            variant="gradient"
-            size="sm"
-          />
-        </MDBox>
-      ),
-      location: (
-        <MDTypography variant="caption" color="text" fontWeight="medium">
-          {item.location || "-"}
-        </MDTypography>
-      ),
-      received_date: (
-        <MDTypography variant="caption" color="text" fontWeight="medium">
-          {item.created_at ? new Date(item.created_at).toLocaleDateString("ko-KR") : "-"}
-        </MDTypography>
-      ),
-      expiry_date: (
-        <MDTypography variant="caption" color="text" fontWeight="medium">
-          {item.expiry_date ? new Date(item.expiry_date).toLocaleDateString("ko-KR") : "-"}
-        </MDTypography>
-      ),
-      action: (
-        <MDBox>
-          <MDBadge
-            badgeContent="Edit"
-            color="info"
-            variant="gradient"
-            size="sm"
-            onClick={() => handleEditClick(item)}
-            sx={{ cursor: "pointer" }}
-          />
-        </MDBox>
-      ),
-    };
-  });
-
   return (
     <DashboardLayout>
       <DashboardNavbar />
@@ -388,7 +541,7 @@ function Inventory() {
                 coloredShadow="info"
               >
                 <MDTypography variant="h6" color="white">
-                  Inventory (Grouped by Item Code, FIFO Order)
+                  Inventory (Grouped by Item)
                 </MDTypography>
               </MDBox>
               <MDBox pt={3}>
@@ -398,14 +551,70 @@ function Inventory() {
                       Loading...
                     </MDTypography>
                   </MDBox>
+                ) : groupedData.length === 0 ? (
+                  <MDBox p={3} textAlign="center">
+                    <MDTypography variant="caption" color="text">
+                      No inventory found
+                    </MDTypography>
+                  </MDBox>
                 ) : (
-                  <DataTable
-                    table={{ columns, rows }}
-                    isSorted={false}
-                    entriesPerPage={false}
-                    showTotalEntries={false}
-                    noEndBorder
-                  />
+                  <TableContainer sx={{ width: "100%", overflowX: "auto", boxShadow: "none" }}>
+                    <Table>
+                      <colgroup>
+                        <col style={{ width: "30px" }} />
+                        <col style={{ width: "15%" }} />
+                        <col style={{ width: "25%" }} />
+                        <col style={{ width: "13%" }} />
+                        <col style={{ width: "13%" }} />
+                        <col style={{ width: "13%" }} />
+                        <col style={{ width: "11%" }} />
+                      </colgroup>
+                      <TableHead sx={{ display: "table-header-group" }}>
+                        <TableRow sx={{ display: "table-row" }}>
+                          <TableCell />
+                          <TableCell>
+                            <MDTypography variant="caption" fontWeight="bold" color="secondary">
+                              ITEM CODE
+                            </MDTypography>
+                          </TableCell>
+                          <TableCell>
+                            <MDTypography variant="caption" fontWeight="bold" color="secondary">
+                              ITEM NAME
+                            </MDTypography>
+                          </TableCell>
+                          <TableCell align="center">
+                            <MDTypography variant="caption" fontWeight="bold" color="secondary">
+                              TOTAL QTY
+                            </MDTypography>
+                          </TableCell>
+                          <TableCell align="center">
+                            <MDTypography variant="caption" fontWeight="bold" color="secondary">
+                              RESERVED
+                            </MDTypography>
+                          </TableCell>
+                          <TableCell align="center">
+                            <MDTypography variant="caption" fontWeight="bold" color="secondary">
+                              AVAILABLE
+                            </MDTypography>
+                          </TableCell>
+                          <TableCell align="center">
+                            <MDTypography variant="caption" fontWeight="bold" color="secondary">
+                              CONTAINERS
+                            </MDTypography>
+                          </TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {groupedData.map((group) => (
+                          <InventoryItemRow
+                            key={group.item_id}
+                            group={group}
+                            onEditClick={handleEditClick}
+                          />
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
                 )}
               </MDBox>
             </Card>

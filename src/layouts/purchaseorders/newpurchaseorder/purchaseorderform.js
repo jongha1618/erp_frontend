@@ -162,11 +162,11 @@ function PurchaseOrderForm() {
     const newDetails = [...details];
     newDetails[index].item_id = newValue?.item_id || "";
     newDetails[index].item_name = newValue?.name || "";
-    // Optionally set default price from item
-    if (newValue?.unit_cost) {
-      newDetails[index].unit_price = newValue.unit_cost;
+    // Set default price from item's cost_price
+    if (newValue?.cost_price) {
+      newDetails[index].unit_price = newValue.cost_price;
       const qty = parseFloat(newDetails[index].quantity) || 0;
-      newDetails[index].total_price = qty * newValue.unit_cost;
+      newDetails[index].total_price = qty * newValue.cost_price;
     }
     setDetails(newDetails);
   };

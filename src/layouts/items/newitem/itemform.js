@@ -22,6 +22,8 @@ function ItemForm() {
     description: "",
     serial_number: "",
     // instock_quantity: "",
+    cost_price: "",
+    sales_price: "",
     document_link: "",
     created_by: "",
     active: true,
@@ -162,7 +164,35 @@ function ItemForm() {
             />
           </Grid>
         </Grid>
-        {/* Billing Information */}
+        {/* Pricing Information */}
+        <MDTypography variant="h5" fontWeight="bold" color="info" mt={4} mb={1}>
+          Pricing Information
+        </MDTypography>
+        <Grid container spacing={2}>
+          <Grid item xs={12} sm={6}>
+            <MDInput
+              type="number"
+              label="Cost Price"
+              name="cost_price"
+              value={item.cost_price ?? ""}
+              onChange={handleChange}
+              fullWidth
+              inputProps={{ min: 0, step: 0.01 }}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <MDInput
+              type="number"
+              label="Sales Price"
+              name="sales_price"
+              value={item.sales_price ?? ""}
+              onChange={handleChange}
+              fullWidth
+              inputProps={{ min: 0, step: 0.01 }}
+            />
+          </Grid>
+        </Grid>
+        {/* Extra Information */}
         <MDTypography variant="h5" fontWeight="bold" color="info" mt={4} mb={1}>
           Extra Information
         </MDTypography>

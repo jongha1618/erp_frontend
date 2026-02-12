@@ -53,6 +53,10 @@ import NewPurchaseOrder from "layouts/purchaseorders/newpurchaseorder";
 import PurchaseRequests from "layouts/purchaserequests";
 import KitItems from "layouts/kititems";
 import NewKitItem from "layouts/kititems/newkititem";
+import BOM from "layouts/bom";
+import NewBom from "layouts/bom/newbom";
+import WorkOrders from "layouts/workorders";
+import NewWorkOrder from "layouts/workorders/newworkorder";
 import RTL from "layouts/rtl";
 import Notifications from "layouts/notifications";
 import Profile from "layouts/profile";
@@ -188,6 +192,57 @@ const routes = [
     key: "edit-kititem",
     route: "/kititems/newkititem/:kit_item_id",
     component: <NewKitItem />,
+  },
+  {
+    type: "collapse",
+    name: "BOM",
+    key: "bom",
+    icon: <Icon fontSize="small">account_tree</Icon>,
+    route: "/bom",
+    component: <BOM />,
+  },
+  {
+    type: "route",
+    name: "New BOM",
+    key: "new-bom",
+    route: "/bom/newbom",
+    component: <NewBom />,
+  },
+  {
+    type: "route",
+    name: "Edit BOM",
+    key: "edit-bom",
+    route: "/bom/newbom/:bom_id",
+    component: <NewBom />,
+  },
+  {
+    type: "collapse",
+    name: "Work Orders",
+    key: "workorders",
+    icon: <Icon fontSize="small">engineering</Icon>,
+    route: "/workorders",
+    component: <WorkOrders />,
+  },
+  {
+    type: "route",
+    name: "New Work Order",
+    key: "new-workorder",
+    route: "/workorders/newworkorder",
+    component: <NewWorkOrder />,
+  },
+  {
+    type: "route",
+    name: "Edit Work Order",
+    key: "edit-workorder",
+    route: "/workorders/newworkorder/:wo_id",
+    component: <NewWorkOrder />,
+  },
+  {
+    type: "route",
+    name: "Work Order Tree",
+    key: "workorder-tree",
+    route: "/workorders/tree/:root_wo_id",
+    component: <WorkOrders />,
   },
   {
     type: "collapse",

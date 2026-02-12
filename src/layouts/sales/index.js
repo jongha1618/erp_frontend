@@ -105,7 +105,7 @@ function SaleRow({ sale }) {
       <TableRow sx={{ display: "table-row" }}>
         <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={8}>
           <Collapse in={open} timeout="auto" unmountOnExit>
-            <Box sx={{ margin: 2, backgroundColor: "#f5f5f5", borderRadius: 2, p: 2 }}>
+            <Box sx={{ margin: 2, backgroundColor: "#dddee7ff", borderRadius: 2, p: 2 }}>
               <MDTypography variant="h6" gutterBottom component="div" color="dark">
                 Order Items
               </MDTypography>

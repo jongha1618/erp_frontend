@@ -90,15 +90,17 @@ function PurchaseRequests() {
   };
 
   const handleOpenConvertDialog = () => {
-    // Auto-generate PO number
-    const poNumber = `PO-${Date.now()}`;
-    setConvertForm((prev) => ({ ...prev, po_number: poNumber }));
+    setConvertForm((prev) => ({ ...prev, po_number: "" }));
     setConvertDialogOpen(true);
   };
 
   const handleConvertToPO = () => {
     if (!convertForm.supplier_id) {
       alert("Please select a supplier");
+      return;
+    }
+    if (!convertForm.po_number.trim()) {
+      alert("Please enter a PO Number");
       return;
     }
 
@@ -514,11 +516,12 @@ function PurchaseRequests() {
                 )}
               />
               <TextField
-                label="PO Number"
+                label="PO Number *"
                 value={convertForm.po_number}
                 onChange={(e) => setConvertForm((prev) => ({ ...prev, po_number: e.target.value }))}
                 size="small"
                 fullWidth
+                required
               />
               <TextField
                 label="Order Date"
@@ -588,7 +591,7 @@ function PurchaseRequests() {
               {selectedItemInventory && (
                 <MDBox
                   sx={{
-                    backgroundColor: "#f5f5f5",
+                    backgroundColor: "#dddee7ff",
                     borderRadius: 1,
                     p: 1.5,
                     border: "1px solid #e0e0e0",

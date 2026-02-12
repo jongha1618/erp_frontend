@@ -48,6 +48,8 @@ import NewSupplier from "layouts/suppliers/newsupplier";
 import Tables from "layouts/tables";
 import Sales from "layouts/sales";
 import NewSale from "layouts/sales/newsale";
+import Quotations from "layouts/quotations";
+import NewQuotation from "layouts/quotations/newquotation";
 import PurchaseOrders from "layouts/purchaseorders";
 import NewPurchaseOrder from "layouts/purchaseorders/newpurchaseorder";
 import PurchaseRequests from "layouts/purchaserequests";
@@ -57,6 +59,7 @@ import BOM from "layouts/bom";
 import NewBom from "layouts/bom/newbom";
 import WorkOrders from "layouts/workorders";
 import NewWorkOrder from "layouts/workorders/newworkorder";
+import Reports from "layouts/reports";
 import RTL from "layouts/rtl";
 import Notifications from "layouts/notifications";
 import Profile from "layouts/profile";
@@ -80,6 +83,14 @@ const routes = [
     icon: <Icon fontSize="small">dashboard</Icon>,
     route: "/dashboard",
     component: <Dashboard />,
+  },
+  {
+    type: "collapse",
+    name: "Reports",
+    key: "reports",
+    icon: <Icon fontSize="small">assessment</Icon>,
+    route: "/reports",
+    component: <Reports />,
   },
   {
     type: "title",
@@ -276,6 +287,28 @@ const routes = [
   },
   {
     type: "collapse",
+    name: "Quotation",
+    key: "quotations",
+    icon: <Icon fontSize="small">description</Icon>,
+    route: "/quotations",
+    component: <Quotations />,
+  },
+  {
+    type: "route",
+    name: "New Quotation",
+    key: "new-quotation",
+    route: "/quotations/newquotation",
+    component: <NewQuotation />,
+  },
+  {
+    type: "route",
+    name: "Edit Quotation",
+    key: "edit-quotation",
+    route: "/quotations/newquotation/:quotation_id",
+    component: <NewQuotation />,
+  },
+  {
+    type: "collapse",
     name: "Sales Order",
     key: "sales",
     icon: <Icon fontSize="small">receipt_long</Icon>,
@@ -318,14 +351,14 @@ const routes = [
   //   route: "/rtl",
   //   component: <RTL />,
   // },
-  {
-    type: "collapse",
-    name: "Quotation & Invoice",
-    key: "notifications",
-    icon: <Icon fontSize="small">notifications</Icon>,
-    route: "/notifications",
-    component: <Notifications />,
-  },
+  // {
+  //   type: "collapse",
+  //   name: "Notifications",
+  //   key: "notifications",
+  //   icon: <Icon fontSize="small">notifications</Icon>,
+  //   route: "/notifications",
+  //   component: <Notifications />,
+  // },
   {
     type: "collapse",
     name: "Profile",

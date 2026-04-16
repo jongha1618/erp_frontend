@@ -36,6 +36,7 @@ Coded by www.creative-tim.com
 */
 
 // Material Dashboard 2 React layouts
+import Users from "layouts/users";
 import Dashboard from "layouts/dashboard";
 import Items from "layouts/items";
 import InventoryTransaction from "layouts/inventorytransactions";
@@ -64,7 +65,7 @@ import RTL from "layouts/rtl";
 import Notifications from "layouts/notifications";
 import Profile from "layouts/profile";
 import SignIn from "layouts/authentication/sign-in";
-import SignUp from "layouts/authentication/sign-up";
+import SignOut from "layouts/authentication/sign-out";
 // import AssemblyItemIcon from "src/assets/images/icons/flags/assemblyitem.png";
 import AssemblyItemIcon from "./assets/images/icons/flags/assemitem.png";
 import ItempartIcon from "./assets/images/icons/itempart.png";
@@ -361,6 +362,15 @@ const routes = [
   // },
   {
     type: "collapse",
+    name: "User Management",
+    key: "users",
+    icon: <Icon fontSize="small">manage_accounts</Icon>,
+    route: "/users",
+    component: <Users />,
+    adminOnly: true,
+  },
+  {
+    type: "collapse",
     name: "Profile",
     key: "profile",
     icon: <Icon fontSize="small">person</Icon>,
@@ -381,7 +391,7 @@ const routes = [
     key: "sign-out",
     icon: <Icon fontSize="small">logout</Icon>,
     route: "/authentication/sign-out",
-    component: <SignUp />,
+    component: <SignOut />,
   },
 ];
 

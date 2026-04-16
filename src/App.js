@@ -48,12 +48,38 @@ import routes from "routes";
 
 // Material Dashboard 2 React contexts
 import { useMaterialUIController, setMiniSidenav, setOpenConfigurator } from "context";
+import { useAuth } from "context/AuthContext";
 
 // Images
 import brandWhite from "assets/images/logo-ct.png";
 import brandDark from "assets/images/logo-ct-dark.png";
 
+// Sign-in page (public — no auth required)
+import SignIn from "layouts/authentication/sign-in";
+
+// Wrapper that redirects unauthenticated users to sign-in
+function RequireAuth({ children }) {
+  const { isAuthenticated } = useAuth();
+  const { pathname } = useLocation();
+
+  if (!isAuthenticated) {
+    return <Navigate to="/authentication/sign-in" state={{ from: pathname }} replace />;
+  }
+  return children;
+}
+
+// Auth routes that should skip the RequireAuth check
+const PUBLIC_ROUTES = ["/authentication/sign-in", "/authentication/sign-up", "/authentication/sign-out"];
+
+// Wrapper that blocks non-admin users
+function RequireAdmin({ children }) {
+  const { isAdmin } = useAuth();
+  if (!isAdmin) return <Navigate to="/dashboard" replace />;
+  return children;
+}
+
 export default function App() {
+  const { isAdmin } = useAuth();
   const [controller, dispatch] = useMaterialUIController();
   const {
     miniSidenav,
@@ -116,11 +142,22 @@ export default function App() {
       }
 
       if (route.route) {
-        return <Route exact path={route.route} element={route.component} key={route.key} />;
+        const isPublic = PUBLIC_ROUTES.includes(route.route);
+        let element = route.component;
+        if (!isPublic) {
+          element = <RequireAuth>{element}</RequireAuth>;
+        }
+        if (route.adminOnly) {
+          element = <RequireAdmin>{element}</RequireAdmin>;
+        }
+        return <Route exact path={route.route} element={element} key={route.key} />;
       }
 
       return null;
     });
+
+  // Filter admin-only routes from the sidebar for non-admin users
+  const visibleRoutes = routes.filter((r) => !r.adminOnly || isAdmin);
 
   const configsButton = (
     <MDBox
@@ -156,7 +193,7 @@ export default function App() {
               color={sidenavColor}
               brand={(transparentSidenav && !darkMode) || whiteSidenav ? brandDark : brandWhite}
               brandName="Material Dashboard 2"
-              routes={routes}
+              routes={visibleRoutes}
               onMouseEnter={handleOnMouseEnter}
               onMouseLeave={handleOnMouseLeave}
             />
@@ -166,8 +203,9 @@ export default function App() {
         )}
         {layout === "vr" && <Configurator />}
         <Routes>
+          <Route path="/authentication/sign-in" element={<SignIn />} />
           {getRoutes(routes)}
-          <Route path="*" element={<Navigate to="/dashboard" />} />
+          <Route path="*" element={<Navigate to="/authentication/sign-in" />} />
         </Routes>
       </ThemeProvider>
     </CacheProvider>
